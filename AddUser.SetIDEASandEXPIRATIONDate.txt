@@ -1,0 +1,51 @@
+when
+    event : EventInBean(  )  
+    userErcBean : UserErcBean(  )  
+    userBean : UserBean(  )  
+    extInfoBean : ExternalInfo(  )  
+    orgUnitBean : OrgUnitBean(  )
+then
+// [ V1.3 - 2018-01-09 D.Chilovich Rule sets disabled status by DISABLED and EXP DATE attributes ] 
+
+  Long disabled = (Long) userErcBean.getAttribute("DISABLED");
+  Date expiryDate = (Date) userErcBean.getAttribute("ACCOUNT_EXPIRY_DATE");
+  //String expiryDate = (String) userErcBean.getAttribute("ACCOUNT_EXPIRY_DATE");
+	
+
+  if( ( disabled == null || disabled.longValue() == 0L ) && expiryDate == null ) {
+    return;
+  }
+  
+  AccountBean userAccount = new AccountBean();
+  userAccount.setPwdcfg_id(1L); // IDEAS cfg, ID=1
+
+  BeanList accounts = UserAction.findAccount(sql, userBean, userAccount);
+  userAccount = (AccountBean) accounts.get(0);
+  
+  // set EXPIRATION DATE value
+  if (expiryDate != null && userAccount != null) {
+			//String stringDate = new SimpleDateFormat("dd-MM-yyyy").format(expiryDate);
+			logger.info("Ideas Account Expiration Date set based on User date" );  //:  " + stringDate);
+			
+			userAccount.setExpire(expiryDate);
+			//UserAction.updateAccount(sql, userAccount);
+			} 
+				
+  // set DISABLED for User based on expiration date
+  // This code is not needed, Ideas Account locks User as well.
+  
+  // set DISABLED status for Ideas Account       
+  Block blockCode = new Block();
+
+  if(disabled ==1L){
+    // Set the Technical block to 1
+    blockCode.setBlocco(0, 1);
+  } else if(disabled ==0L){
+    blockCode.setBlocco(0, 0);
+  } else {
+    logger.debug("Disabled value not supported: "+disabled);
+    return;
+  }
+
+  userAccount.setBlock(blockCode);
+  UserAction.updateAccount(sql, userAccount );

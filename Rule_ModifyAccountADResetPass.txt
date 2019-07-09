@@ -1,0 +1,22 @@
+when
+    accountBean : AccountBean(  )  
+    event : EventTargetBean(  )
+then
+// [ V1.0 ]
+
+        if (accountBean.getId() == null) {
+            throw new Exception("Account " + event.getCode() + " not found for target " + event.getTarget());
+        }
+
+        String encryptedPassword = event.getAttr1();
+        String password = null;
+
+    if (!event.getTarget().equals("Win2017 AD Application")) {
+            // do nothing
+        } else {
+	if (accountBean.getLASTLOGINDATE <= Java.util.date("CurrentDate") ) {
+       		accountBean.setAttribute("RESETATNEXTLOGIN, true );
+        		logger.debug("EVENT TARGET: Account "+ event.getCode() + " was processed" );
+        		logger.info("EVENT TARGET: Account "+ event.getCode() + " was processed" );
+	}
+  }

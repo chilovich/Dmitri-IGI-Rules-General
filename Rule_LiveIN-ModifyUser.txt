@@ -1,0 +1,53 @@
+when
+		userBean : UserBean(  )
+		externalInfo : ExternalInfo(  )
+then
+  // [ V1.1 - 2014-05-26 ]
+
+  if (userBean.getOrganizationalunit_id() == null) {
+    // user not associated
+    String ouCode = (String) externalInfo.getAttribute("OU");
+    if (ouCode != null) {
+      OrgUnitBean ouBean = UtilAction.findOrgUnitByCode(sql, ouCode);
+      if (ouBean != null) {
+        UtilAction.moveUser(sql, userBean, ouBean);
+      }
+    }
+  }
+
+  // Update all user attributes
+  UserAction.modifyUser(sql, userBean, externalInfo);
+
+  logger.debug("User updated " + userBean.getCode());
+  
+  ===============
+import com.engiweb.logger.impl.Log4JImpl;
+import com.engiweb.pm.entity.BeanList;
+import com.engiweb.profilemanager.backend.dao.db.SQLH;
+import com.engiweb.profilemanager.common.bean.AccountBean;
+import com.engiweb.profilemanager.common.bean.ExternalInfo;
+import com.engiweb.profilemanager.common.bean.OrgUnitBean;
+import com.engiweb.profilemanager.common.bean.OrgUnitErcBean;
+import com.engiweb.profilemanager.common.bean.PwdCfgBean;
+import com.engiweb.profilemanager.common.bean.UserBean;
+import com.engiweb.profilemanager.common.bean.UserErcBean;
+import com.engiweb.profilemanager.common.bean.event.EventBean;
+import com.engiweb.profilemanager.common.bean.event.EventInBean;
+import com.engiweb.profilemanager.common.ruleengine.action.OrgUnitAction;
+import com.engiweb.profilemanager.common.ruleengine.action.UserAction;
+import com.engiweb.profilemanager.common.ruleengine.action.UtilAction;
+import com.engiweb.toolkit.common.DBMSException;
+import com.engiweb.profilemanager.common.bean.Block;
+import com.engiweb.profilemanager.common.ruleengine.action.UtilAction;
+import com.engiweb.profilemanager.common.ruleengine.action.OrgUnitAction;
+import com.engiweb.profilemanager.common.ruleengine.action.UserAction;
+import com.engiweb.profilemanager.common.bean.UserBean;
+import com.engiweb.profilemanager.common.bean.UserErcBean;
+import com.engiweb.profilemanager.common.bean.entitlement.EntitlementBean;
+import com.engiweb.profilemanager.common.bean.event.EventInBean;
+
+global com.engiweb.profilemanager.backend.dao.db.SQLH sql;
+global com.engiweb.logger.impl.Log4JImpl logger;
+
+
+

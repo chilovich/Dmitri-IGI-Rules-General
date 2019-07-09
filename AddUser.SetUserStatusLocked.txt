@@ -1,0 +1,33 @@
+when
+		event : EventInBean(  )
+		userErcBean : UserErcBean(  )
+		userBean : UserBean(  )
+		extInfoBean : ExternalInfo(  )
+		orgUnitBean : OrgUnitBean(  )
+then
+
+  // [ V1.1 - 2014-05-26 ]
+
+  Long disabled = (Long) userErcBean.getAttribute("DISABLED");
+  if (disabled == null || disabled.longValue() == 0L) {
+   return;
+  }
+
+  // Lock to Set
+  Block lock = new Block();
+  lock.setLock(LockType.AUTHORITATIVE, 1);
+
+  // User IDEAS Account
+  AccountBean aBean = new AccountBean();
+  aBean.setPerson_code(userBean.getCode());
+  aBean.setPwdcfg_id(1L);
+
+  // Get The User Account
+  BeanList listAccounts = UserAction.findAccount(sql, userBean, aBean);
+  aBean =(AccountBean) listAccounts.get(0);
+
+  // Lock the Account
+  aBean.setBlock(lock);
+  UserAction.updateAccount(sql, aBean);
+
+  logger.debug("User : " + userBean.getCode() + " locked!");

@@ -1,0 +1,82 @@
+when
+    event : EventTargetBean(  )  
+    account : AccountBean(  )  
+    attributes : AccountAttrValueList(  )
+then
+// Exit if account_code is null
+if (event.getCode() == null) {
+    logger.info("Account code is empty. Account can not be created - no code!");
+    return;
+  }
+
+// Exit if already matched to existing User already
+if (account.getPerson_id() != null) {
+    logger.info("Account Owner User exists, and is already matched!");
+    return;
+  }
+  
+// Construct user attributes
+UserBean userBean = new UserBean(  );
+OrgUnitBean orgUnitBean = new OrgUnitBean(  );
+ExternalInfo externalInfo = new ExternalInfo(  );
+
+// User Attributes from Account object
+  String userOU = "root";
+  String userCode = event.getCode().toString();
+  String userMAIL = event.getEmail();
+  String userSurname = event.getSurname();
+  String userName = event.getName();
+  String userDisplayName = event.getDisplayName();
+  String userIdentityUID = event.getIdentityUID();
+  String userTargetName = event.getTarget();
+    
+// Details in debug mode
+logger.debug("userOU " + userOU);
+logger.debug("userCode " + event.getCode().toString());
+logger.debug("userMAIL " + event.getEmail());
+logger.debug("userSurname " + event.getSurname());
+logger.debug("userName " + event.getName());
+logger.debug("userDisplayName " + event.getDisplayName());
+logger.debug("userIdentityUID " + event.getIdentityUID());
+logger.debug("userTargetName " + event.getTarget());
+
+// Exit if account belongs to a pplication which this rule should not create owner User for
+if ( userTargetName != null ) {
+	//if ( userTargetName.equals("ILC_7568843136660528292") ) {
+		logger.info("Account belongs to application under IGI Marker " + userTargetName + ". Owner User will be created, if does not exist.");
+	//} else {
+	//	logger.info("Account belongs to application under IGI Marker " + userTargetName + ". Owner User will not be created!");
+	//	return;
+	//}
+  } else {
+	logger.info("Account belongs to null application!");
+	return;
+  }
+  
+orgUnitBean.setCode(userOU);
+userBean.setCode(userCode);
+userBean.setEmail(userMAIL);
+userBean.setSurname(userSurname);
+
+if ( userName != null ) {
+	userBean.setName(userName);
+} else if ( userIdentityUID != null ){
+	String fuserName = "FID_" + userIdentityUID;
+	userBean.setName(fuserName);
+} else {
+	userBean.setName(userCode);
+}
+
+
+// create user in IGI
+try {
+    UserAction.add(sql, userBean, orgUnitBean, externalInfo);
+  } catch (DBMSException e) {
+    if (e.getErrorCode() == DBMSException.OBJECT_NOT_UNIQUE) {
+      throw new Exception("Account owner User already exists with code=" + userBean.getCode());
+	} else {
+      throw e;
+	}
+  }
+
+  logger.debug("Account's Owner User  created : " + userBean.getCode());

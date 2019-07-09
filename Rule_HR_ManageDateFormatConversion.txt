@@ -1,0 +1,17 @@
+when
+    event : Event(  )
+then
+String attributeName = "ACCOUNT_EXPIRY_DATE";
+    DataBean dBean = event.getBean();
+    String dateString = (String) dBean.getCurrentAttribute(attributeName);
+
+      if (dateString != null) {
+        try{
+         	Timestamp ts = Timestamp.valueOf(dateString);
+	         dBean.setCurrentAttributeValue(attributeName, ts);
+            }catch (Exception e){
+
+           log.error(attributeName+" wrong format in HR read date conversion rule");
+           dBean.stripCurrentAttribute(attributeName);
+        }
+      }

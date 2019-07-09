@@ -1,0 +1,70 @@
+when
+    event : EventTargetBean(  )  
+    account : AccountBean(  )  
+    attributes : AccountAttrValueList(  )
+then
+// Ver. 4, D.Chilovich IBM 2-14-2012 - add User Owner for all W2012DC Contractor Accounts
+
+// Exit if account_code is null
+if (event.getCode() == null) {
+    logger.info("Account code is empty. Account can not be created - no code!");
+    return;
+  }
+
+// Exit if already matched to existing User already
+if (account.getPerson_id() != null) {
+    logger.info("Account Owner User exists, and is already matched to user ID: " + account.getPerson_id() );
+    return;
+  }
+  
+// Construct user attributes
+UserBean userBean = new UserBean(  );
+OrgUnitBean orgUnitBean = new OrgUnitBean(  );
+ExternalInfo externalInfo = new ExternalInfo(  );
+String userTargetName = null;
+String userName = null;
+String userSurname = null;
+String userMAIL = null;
+
+// User Attributes from Account object
+  String userOU = "AD Contractor Accounts";
+  String userCode = event.getCode().toString();
+if ( event.getEmail() != null ) {  userMAIL = event.getEmail(); }
+if ( event.getSurname() != null ) {  userSurname = event.getSurname(); }
+if ( event.getName() != null ) {  userName = event.getName(); }
+if ( event.getTarget() != null ) {  userTargetName = event.getTarget(); }
+
+// Deterrmine by application account belongs to - should owner be created.
+if ( userTargetName != null ) {
+	if ( userTargetName.equals("Win2012 AD") ) {
+	logger.info("Account belongs to application under IGI Marker " + userTargetName  + ". Owner User will be created, if does not exist.");
+	} else {
+		logger.info("Account belongs to application under IGI Marker " + userTargetName  + ". Owner User will not be created!");
+		return;
+	}
+  } else {
+logger.info("Account belongs to null application!");
+return;
+}
+  
+orgUnitBean.setCode(userOU);
+userBean.setCode(userCode);
+if ( userMAIL != null ) { userBean.setEmail(userMAIL); }
+if ( userSurname != null ) { userBean.setSurname(userSurname); }
+if ( userName != null ) { userBean.setName(userName); }
+
+// create user in IGI, if it is based on AD Account ( id 160 )
+if ( userTargetName != null ) {
+	if ( userTargetName.equals("Win2012 AD") ) {
+try {
+    UserAction.add(sql, userBean, orgUnitBean, externalInfo);
+  } catch (DBMSException e) {
+    if (e.getErrorCode() == DBMSException.OBJECT_NOT_UNIQUE) {
+      throw new Exception("Account owner User already exists with Code: " + userBean.getCode());
+	} else {
+      throw e;
+	}
+  }
+logger.debug("Account " +  userCode + " owner User created with Code ID: " + userBean.getCode());
+}
+}

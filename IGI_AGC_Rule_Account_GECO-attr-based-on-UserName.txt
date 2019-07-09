@@ -1,0 +1,56 @@
+when 
+event : EventTargetBean( ) 
+account : AccountBean( ) 
+attributes : AccountAttrValueList( ) 
+
+then // exit if already matched by a customized rule 
+
+if (account.getPerson_id() != null) 
+{ 
+logger.info("Account already matched!"); 
+return; 
+} 
+
+if(event.getTarget().startsWith("ILC_")) 
+{ 
+IAccountDirect accountDirect = (IAccountDirect) DirectFactory.getDirectInterface(JndiNames.accountEJB); 
+// Gets the attributes from ILC. 
+
+BeanList<PwdManagementAttrValBean> beanList = accountDirect.findAttrValue(null, account, null, sql); 
+logger.info("AccountDirectList="+beanList); 
+
+//logger.info("attributes:="+attributes.toString()); 
+
+attributes.addAll(beanList); 
+
+//logger.info("attr at 0th location:- "+attributes.get(0)); 
+
+for (int i = 0; i < attributes.size(); i++) 
+{ 
+if(attributes.get(i).getPwdCfgAttrKey_id()==115L)
+{ 
+String gecos = attributes.get(i).getValue(); 
+
+if(gecos != null)
+{ 
+// Look for the User 
+into IDEAS UserBean userFilter = new UserBean(); 
+userFilter.setCode(gecos); 
+BeanList ul = UserAction.find(sql, userFilter); 
+logger.info("value of ul="+ul); 
+if (ul.size() == 0) 
+{ 
+// userNotFound logger.info("user not found into IDEAS"); 
+
+throw new Exception("User not found into IDEAS, description=" + gecos); 
+} 
+else 
+{ 
+// found userFilter = (UserBean) ul.get(0); 
+logger.info("userFilter.getId()="+userFilter.getId()); 
+logger.info("account="+account); 
+account.setPerson_id(userFilter.getId()); 
+UserAction.updateAccount(sql,account); 
+logger.info("Account after Update="+account); 
+logger.info("Account ownership Updated Successfully"); 
+event.setTrace("Identity matched: Gecos!"); } } } } } 

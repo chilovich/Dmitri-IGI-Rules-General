@@ -1,0 +1,20 @@
+when
+		event : Event(  )
+then
+
+  String role = (String) event.getBean().getCurrentAttribute("SAP_ROLE");
+  String permission = (String) event.getBean().getCurrentAttribute("SAP_PERMISSION");
+
+  if ((role == null) && (permission == null)) {
+    return;
+  }
+
+  if ((role != null) && !(role.equals(""))) {
+    event.getBean().setCurrentAttributeValue("var_permission", role);
+    event.getBean().setCurrentAttributeValue("var_type", "sap role");
+  }
+  else
+  if ((permission != null) && !(permission.equals(""))) {
+    event.getBean().setCurrentAttributeValue("var_permission", permission);
+    event.getBean().setCurrentAttributeValue("var_type", "sap permission");
+  }

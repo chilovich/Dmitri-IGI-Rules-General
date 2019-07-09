@@ -1,0 +1,111 @@
+when
+    event : EventTargetBean(  )  
+    account : AccountBean(  )  
+    attributes : AccountAttrValueList(  )
+then
+// Ver. 5, D.Chilovich IBM, 2018-05-24 - add User Owner for all W2012DC Contractor Accounts, and add OUs from account info
+
+// Exit if account_code is null
+if (event.getCode() == null) {
+    logger.info("Account code is empty. Account can not be created - no code!");
+    return;
+  }
+
+// Exit if already matched to existing User already
+if (account.getPerson_id() != null) {
+    logger.info("Account Owner User exists, and is already matched to user ID: " + account.getPerson_id() );
+    return;
+  }
+  
+// Construct user attributes
+UserBean userBean = new UserBean(  );
+OrgUnitBean orgUnitBean = new OrgUnitBean(  );
+ExternalInfo externalInfo = new ExternalInfo(  );
+String userTargetName = null;
+String userName = null;
+String userSurname = null;
+String userMAIL = null;
+String userADDn = null;
+
+// User Attributes from Account object
+String userCode = event.getCode().toString();
+if ( event.getEmail() != null ) {  userMAIL = event.getEmail(); }
+if ( event.getSurname() != null ) {  userSurname = event.getSurname(); }
+if ( event.getName() != null ) {  userName = event.getName(); }
+if ( event.getTarget() != null ) {  userTargetName = event.getTarget(); }
+if ( event.getTarget() != null ) {  userADDn  = event.getDn(); }
+
+// Deterrmine by application account belongs to - should owner be created.
+if ( userTargetName != null ) {
+	if ( userTargetName.equals("win2016") ) {
+	logger.info("Account belongs to application under IGI Marker " + userTargetName  + ". Owner User will be created, if does not exist.");
+	} else {
+		logger.info("Account belongs to application under IGI Marker " + userTargetName  + ". Owner User will not be created!");
+		return;
+	}
+  } else {
+logger.info("Account belongs to null application!");
+return;
+}
+  
+// Determine if parent OU exists, add if missing
+String parentCode = "SOIL_HR";
+OrgUnitBean parentBean = UtilAction.findOrgUnitByCode(sql, parentCode);
+
+if (parentBean == null) {
+     OrgUnitBean root = new OrgUnitBean();
+     root.setId(1L);
+     parentBean = UtilAction.createOrgUnit(sql, parentCode, parentCode, "", root, false, false);
+     logger.info("Account Owner Parent OU created with code: " + parentCode);
+}
+	
+// Determine Account Owner OU name and code from account name
+String [] DNArray = userADDn.split(",");
+//String userOU = DNArray[1].replace("=","");
+String userOU = DNArray[2].substring(DNArray[2].indexOf("=")+1).toUpperCase();
+logger.info("OU Prefix for from account name: " + userOU );
+    
+if (userOU == null) {
+  userOU = "SOIL_HR";
+ }
+
+logger.info("OU Owner for account to be: " + userOU );
+
+// Determine if User OU exists, add if missing, add it under parent OU
+OrgUnitBean userOUBean = UtilAction.findOrgUnitByCode(sql, userOU);
+
+if (userOUBean == null) {
+     userOUBean = UtilAction.createOrgUnit(sql, userOU, userOU, "", parentBean, false, false);
+     logger.info("Account Owner OU created with code: " + userOU);
+}
+
+String userOU2 = DNArray[1].substring(DNArray[1].indexOf("=")+1).toUpperCase();
+OrgUnitBean userOUBean2 = UtilAction.findOrgUnitByCode(sql, userOU2);
+
+if (userOUBean2 == null) {
+     userOUBean2 = UtilAction.createOrgUnit(sql, userOU2, userOU2, "", userOUBean, false, false);
+     logger.info("Account Owner OU created with code: " + userOU);
+}
+
+// Construct new owner User
+orgUnitBean.setCode(userOU2);
+userBean.setCode(userCode);
+if ( userMAIL != null ) { userBean.setEmail(userMAIL); }
+if ( userSurname != null ) { userBean.setSurname(userSurname); }
+if ( userName != null ) { userBean.setName(userName); }
+
+// create user in IGI, if it is based on AD Account ( id 160 )
+if ( userTargetName != null ) {
+	if ( userTargetName.equals("win2016") ) {
+try {
+    UserAction.add(sql, userBean, orgUnitBean, externalInfo);
+  } catch (DBMSException e) {
+    if (e.getErrorCode() == DBMSException.OBJECT_NOT_UNIQUE) {
+      throw new Exception("Account owner User already exists with Code: " + userBean.getCode());
+	} else {
+      throw e;
+	}
+  }
+logger.info("Account " +  userCode + " owner User created with Code ID: " + userBean.getCode());
+}
+}

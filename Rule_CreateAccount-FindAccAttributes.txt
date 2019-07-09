@@ -1,0 +1,18 @@
+Find Acc Attrib
+
+when
+    event : EventTargetBean(  )  
+    account : AccountBean(  )  
+    attributes : AccountAttrValueList(  )
+then
+// [ V1.0 - 2016-09-30 ]
+
+    if(event.getTarget().startsWith("ILC_")) {
+
+        IAccountDirect accountDirect = (IAccountDirect) DirectFactory.getDirectInterface(JndiNames.accountEJB);
+
+        // Gets the attributes from ILC.
+        BeanList<PwdManagementAttrValBean> beanList = accountDirect.findAttrValue(null, account, null, sql);
+
+        attributes.addAll(attributes);
+    }

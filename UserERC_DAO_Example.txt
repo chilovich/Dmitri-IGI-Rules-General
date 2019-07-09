@@ -1,0 +1,34 @@
+Regarding  UserERC  I analyzed the code and i discovered that there is a class UserErcDAO and an EJB called ERC EJB but not the intermediate layer UserErcDirect (and also no Action).
+
+Anyway this is an example of use of the DAO.
+I never used it. I just copied some code from the EJB implementation.
+Note that it does not use a connection passed from the outside but it create its own connection.
+
+		UserErcDAO ercDao = new UserErcDAO();
+		ercDao.init(UserErcDAO.TABLE_USER_ERC, dbUser);
+		ercDao.open(dbUser);
+
+		if (pm_code != null) {
+			record.put(UserErcDAO.PM_CODE, pm_code);
+		}
+		if (ou != null) {
+			record.put(UserErcDAO.OU, ou);
+		}
+		if (given_name != null) {
+			record.put(UserErcDAO.GIVEN_NAME, given_name);
+		}
+		if (surname != null) {
+			record.put(UserErcDAO.SURNAME, surname);
+		}
+
+		HashMap<String, Object> result = null;
+		try {
+			result = ercDao.insert(record);
+			ercDao.close();
+		} catch (Exception e) {
+
+			ercDao.rollback();
+			ercDao.close();
+		}
+
+		return result;

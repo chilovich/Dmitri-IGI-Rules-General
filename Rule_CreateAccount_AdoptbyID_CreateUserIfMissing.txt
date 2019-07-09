@@ -1,0 +1,46 @@
+1. UserUD matching rule
+when
+    event : EventTargetBean(  )  
+    account : AccountBean(  )
+then
+// [ V1.5 - 2014-05-26 ]
+
+  // Exit if account_code is null
+  if (event.getCode() == null) {
+    logger.info("Account code is empty. Account can not be crerated with userid matching!");
+    return;
+  }
+
+  // Exit if already matched by a previous rule in the flow
+  if (account.getPerson_id() != null) {
+    logger.info("Account already matched!");
+    return;
+  }
+
+  if (account.getCode() != null) {
+    logger.info("Account already matched!");
+    return;
+  }
+
+  UserBean userFilter = new UserBean();
+  userFilter.setCode(event.getCode());
+
+  BeanList beanList = UserAction.find(sql, userFilter);
+  boolean found = !beanList.isEmpty();
+  if (found) {
+    logger.info("Account Matched by userid!");
+
+    userFilter = (UserBean) beanList.get(0);
+
+    account.setPerson_id(userFilter.getId());
+
+    if (account.getId() != null) {
+      // the account already exist but it is unmatched/orphan
+      UserAction.updateAccount(sql, account);
+      logger.info("Account exist but it is unmatched/orphan");
+    } else {
+      UserAction.addAccount(sql, account);
+      logger.info("Account : " + account.getCode() + " created!");
+    }
+  }
+

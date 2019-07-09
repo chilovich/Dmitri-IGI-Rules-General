@@ -1,0 +1,70 @@
+when
+    event : EventTargetBean(  )
+    account : AccountBean(  )
+    attributes : AccountAttrValueList(  )
+then
+// [ V2.0 - 2018-05-01, D.Chilovich, IBM ]
+String userTargetName = null;
+String userAccountCode = null;
+Long userAccountPwdManagement_id = null;
+Long userAccountPwdCfgAttrKey_id = null;
+String userAccountPwdCfgAttrKey_name = null;
+String accountAttr19 = null;
+String accountAttr20 = null;
+
+// Determine account code
+if ( event.getCode() != null ) {  userAccountCode = event.getCode(); }
+
+// Determine what application account belongs to
+if ( event.getTarget() != null ) {  userTargetName = event.getTarget(); }
+if ( userTargetName != null ) {
+	if ( userTargetName.equals("Disconnected Application 6" ) ) {
+		logger.info("Account " + userAccountCode + " belongs to application under IGI Marker " + userTargetName  + ". Ext. Attributes will be added.");
+	} else {
+		logger.info("Account " + userAccountCode + " belongs to application under IGI Marker " + userTargetName  + ". No attributes are added.");
+		return;
+	}
+  } else {
+logger.info("Account belongs to null application! Exiting...");
+return;
+}
+
+// Determine extended attributes values
+if ( event.getAttr19() != null )  {  accountAttr19 = event.getAttr19(); }
+if ( event.getAttr20() != null )  {  accountAttr20 = event.getAttr20(); }
+
+// Log values
+logger.info("Account " + userAccountCode + " ext. attributes: " + accountAttr19 + "," + accountAttr20 );
+
+// Add attribute:value pairs to Account's PDWCONFIGURATION_ATTR_VAL table
+IAccountDirect accountDirect = (IAccountDirect) DirectFactory.getDirectInterface(JndiNames.accountEJB); 
+BeanList<AccountBean> beanList = accountDirect.find(account, null, sql); 
+logger.info("BEFORE: AccountBeanList = "+beanList );
+
+//BeanList<PwdManagementAttrValBean> beanList2 = accountDirect.findAttrValue(null, account, null, sql); 
+//logger.info("BEFORE: AccountDirectList = "+beanList2 );
+
+// same for all accounts - App id , Account id
+userAccountPwdManagement_id = beanList.get(0).getId();
+userAccountPwdCfgAttrKey_id = beanList.get(0).getId();
+
+logger.info("TO SET: app: " + userAccountPwdManagement_id + ", account pwdcfg id: " + userAccountPwdCfgAttrKey_id );
+
+PwdManagementAttrValBean  yourattr19 = new PwdManagementAttrValBean ();
+yourattr19.setId(userAccountPwdCfgAttrKey_id);
+yourattr19.setValue(accountAttr19);
+yourattr19.setPwdManagement_id(userAccountPwdManagement_id);
+yourattr19.setPwdCfgAttrKey_id(1775L);
+yourattr19.setPwdCfgAttrKey_name("ATTR19");
+attributes.add(yourattr19);
+
+PwdManagementAttrValBean  yourattr20 = new PwdManagementAttrValBean ();
+yourattr20.setId(userAccountPwdCfgAttrKey_id);
+yourattr20.setValue(accountAttr20);
+yourattr20.setPwdManagement_id(userAccountPwdManagement_id);
+yourattr20.setPwdCfgAttrKey_id(1776L);
+yourattr20.setPwdCfgAttrKey_name("ATTR20");
+attributes.add(yourattr20);
+
+logger.info("AFTER: AccountDirectList change done." );
+ 

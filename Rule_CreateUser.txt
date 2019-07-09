@@ -1,0 +1,39 @@
+create user
+
+when
+    userBean : UserBean(  )  
+    orgUnitBean : OrgUnitBean(  )  
+    externalInfo : ExternalInfo(  )
+then
+// [ V1.1 - 2014-05-26 ]
+  
+  try {
+    UserAction.add(sql, userBean, orgUnitBean, externalInfo);
+  } catch (DBMSException e) {
+    if (e.getErrorCode() == DBMSException.OBJECT_NOT_UNIQUE) {
+      throw new Exception("User already exists with code=" + userBean.getCode());
+	} else {
+      throw e;
+	}
+  }
+
+  logger.debug("User created : " + userBean.getCode());
+
+
+create unique user ID
+
+when
+    userBean : UserBean(  )  
+    userErcBean : UserErcBean(  )
+then
+// [ V1.1 - 2014-05-26 ]
+  
+  // User UserID
+  String userId = (String) userErcBean.getAttribute("PM_CODE");
+  
+  // If UserID is not present will be generated
+  if (userId == null || userId.equals("")) {
+    Long ercSequenceId = (Long) userErcBean.getAttribute("ID");
+	userId = "HR" + ercSequenceId;
+	userBean.setCode(userId);
+  }

@@ -1,0 +1,15 @@
+ArrayList<String> recipients = new ArrayList<String>();
+			recipients.add(managerMail);
+
+			Map<String, String> map = new HashMap<>();
+			map.put("${firstname}", userBean.getName());
+			map.put("${lastname}", userBean.getSurname());
+			map.put("${sid}", userBean.getCode());
+			map.put("${password}", pwd);
+			map.put("${email}", userBean.getEmail());
+
+
+
+			EmailDataBean emailBean = new EmailDataBean(MAIL_FROM, recipients);
+			WebEmailAction.submitEmail(sql, map, "", "admin", "DE", "DE",
+					IdeasApplications.EMAILSERVICE.getName(), TEMPLATE_NAME, emailBean);

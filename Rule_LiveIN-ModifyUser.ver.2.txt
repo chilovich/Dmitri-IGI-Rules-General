@@ -1,0 +1,116 @@
+when
+		userBean : UserBean(  )
+		externalInfo : ExternalInfo(  )
+		orgUnitBean : OrgUnitBean(  )
+then
+  // [ V2.0, D.Chilovich, 03/10/2018 ]
+  // 1. Move user if OU changed.
+  // 2. Modify user.
+  //    2.1. Check User Type. If User type changed, create new User with old ID and new type,
+  // 	leave old User in IGI in with new ID *_OLD, transfer all old user entitlements to new User,
+  //	and modify new user.
+  //	2.2. Or simply modify user.
+  // 3. Inform manager ( other rule )
+
+  // Move user if OU changed
+  if (userBean.getOrganizationalunit_id() == null) {
+    // user not associated
+    String ouCode = (String) externalInfo.getAttribute("OU");
+    if (ouCode != null) {
+      OrgUnitBean ouBean = UtilAction.findOrgUnitByCode(sql, ouCode);
+      if (ouBean != null) {
+        UtilAction.moveUser(sql, userBean, ouBean);
+		logger.debug("User " + userBean.getCode() + " moved to OU " + ouCode );
+      }
+    }
+  }
+
+  // Modify User
+  // If - Check if user type changed. Change code for old user. Assing code to new user with new type.
+  // Suspend old user. Move all credentials of old user to new user. 
+  String userCode = userBean.getCode();
+  
+  UserBean userExistsBean = UtilAction.findUserByCode(sql, userCode);
+  if ( userExistsBean.getPersontype_name() != userBean.getPersontype_name() )
+  {
+
+  	// Construct new user
+	UserBean userNewBean = new UserBean(  );
+	OrgUnitBean orgUnitNewBean = new OrgUnitBean(  );
+	ExternalInfo externalNewInfo = new ExternalInfo(  );
+		
+	String userNewCode = userCode + "_OLD";
+	String userNewType = userBean.getPersontype_name();
+	String userOldType = userExistsBean.getPersontype_name();
+	String userMAIL = userBean.getEmail();
+	String userSurname = userBean.getSurname();
+	String userName = userBean.getName();
+	String userNewOU = userExistsBean.getOrganizationalunit_code();
+	
+	userNewBean.setCode(userNewCode);
+	userNewBean.setPersontype_name(userOldType);
+	orgUnitNewBean.setCode(userNewOU);
+	
+	if ( userMAIL != null ) { userNewBean.setEmail(userMAIL); }
+	if ( userSurname != null ) { userNewBean.setSurname(userSurname); }
+	if ( userName != null ) { userNewBean.setName(userName); }
+	
+	try {
+		UserAction.add(sql, userNewBean, orgUnitNewBean, externalNewInfo);
+		} catch (DBMSException e) {
+			if (e.getErrorCode() == DBMSException.OBJECT_NOT_UNIQUE) {
+				throw new Exception("New User already exists with code: " + userBean.getCode());
+			} else {
+			throw e;
+			}
+		}
+		
+	logger.info("User type change found, from  " + userOldType + " to " + userNewType );
+		
+	userBean.setPersontype_name(userNewType);
+	UserAction.modifyUser(sql, userBean, externalInfo);
+	//UserAction.modifyUser(sql, userExistsBean, externalInfo);
+	//createUME(sql, userExistsBean, userBean);
+		
+	logger.info("User udated with type change management, moved from  " + userCode + " to " + userNewCode );
+  }
+  else 
+  {
+	// Esle - just Update all user attributes
+	UserAction.modifyUser(sql, userBean, externalInfo);
+	logger.info("User updated " + userBean.getCode());
+  }
+
+
+  
+===============
+import com.engiweb.logger.impl.Log4JImpl;
+import com.engiweb.pm.entity.BeanList;
+import com.engiweb.profilemanager.backend.dao.db.SQLH;
+import com.engiweb.profilemanager.common.bean.AccountBean;
+import com.engiweb.profilemanager.common.bean.ExternalInfo;
+import com.engiweb.profilemanager.common.bean.OrgUnitBean;
+import com.engiweb.profilemanager.common.bean.OrgUnitErcBean;
+import com.engiweb.profilemanager.common.bean.PwdCfgBean;
+import com.engiweb.profilemanager.common.bean.UserBean;
+import com.engiweb.profilemanager.common.bean.UserErcBean;
+import com.engiweb.profilemanager.common.bean.event.EventBean;
+import com.engiweb.profilemanager.common.bean.event.EventInBean;
+import com.engiweb.profilemanager.common.ruleengine.action.OrgUnitAction;
+import com.engiweb.profilemanager.common.ruleengine.action.UserAction;
+import com.engiweb.profilemanager.common.ruleengine.action.UtilAction;
+import com.engiweb.toolkit.common.DBMSException;
+import com.engiweb.profilemanager.common.bean.Block;
+import com.engiweb.profilemanager.common.ruleengine.action.UtilAction;
+import com.engiweb.profilemanager.common.ruleengine.action.OrgUnitAction;
+import com.engiweb.profilemanager.common.ruleengine.action.UserAction;
+import com.engiweb.profilemanager.common.bean.UserBean;
+import com.engiweb.profilemanager.common.bean.UserErcBean;
+import com.engiweb.profilemanager.common.bean.entitlement.EntitlementBean;
+import com.engiweb.profilemanager.common.bean.event.EventInBean;
+
+global com.engiweb.profilemanager.backend.dao.db.SQLH sql;
+global com.engiweb.logger.impl.Log4JImpl logger;
+
+
+

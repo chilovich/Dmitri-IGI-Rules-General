@@ -1,0 +1,25 @@
+Rule to create business role for new OU
+
+This rule creates a new business role for any new OU created through the IN queue and makes it a default role in this OU. Customer often call this an "Organizational Role".
+
+Some code for checking if role already exists is missing. Also code for OU rename and OU deletion is missing.
+
+Add this rule to Live Events/IN/ORGUNIT_ADD.
+
+
+when
+
+    orgUnit : OrgUnitBean(  )
+    orgUnitErcBean : OrgUnitErcBean(  )
+
+then
+
+    String ouname = orgUnit.getName();                                    // get name of new OU
+    EntitlementBean entBean = new EntitlementBean();                      // create new entitlement
+    entBean.setName(ouname);                                              // set name same as OU name
+    entBean.setType(EntitlementType.BUSINESS_ROLE.getCode());             // set type to "Business role"
+    entBean = EntitlementAction.insertEntitlement(sql, entBean, true);    // create business role, return new EntitlementBean object
+    entBean.setDefaultOption(true);                                       // make this entitement default in the OUs, where we add it
+    BeanList<EntitlementBean> roleList = new BeanList<EntitlementBean>();
+    roleList.add(entBean);                                                // build list of entitlement to be added to OU
+    OrgUnitAction.addRoles(sql, orgUnit, roleList, false);                // add list to OU

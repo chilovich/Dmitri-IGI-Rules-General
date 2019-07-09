@@ -1,0 +1,104 @@
+when
+    eval( true )
+then
+// Dataset we populate from this rule
+  String tName = "Scanner Events";
+
+  TemplateBean templateBean = new TemplateBean();
+  templateBean.setName(tName);
+
+  TemplateDAO templateDAO = new TemplateDAO(logger);
+  templateDAO.setDAO(sql);
+
+  BeanList blTemplateBean = templateDAO.find(templateBean, new Paging(4));
+
+  if (blTemplateBean.size()==0) {
+    throw new Exception("Template does not exists!");
+  }
+  templateBean = (TemplateBean) blTemplateBean.get(0);
+  
+    // For test we add all TEST Users to campaign dataset
+	String SQL_QUERY_GET_USERS = "select distinct CODE from " + sql.getCntSQL().dbUser + ".PERSON where NAME like '%%Test%%'";
+
+	ResultSet rs = sql.getCntSQL().getConnection().createStatement().executeQuery(SQL_QUERY_GET_USERS);
+    	logger.debug("EXECUTE QUERY " + SQL_QUERY_GET_USERS);
+
+    // For each user we check, add him and his entitlements to campaign
+    String checkUserCode = null;
+    UserBean checkUserBean = null;
+
+	while (rs.next()) {
+
+            logger.debug("LOOP ...");
+			
+            checkUserCode = rs.getString(1);
+			
+		 // Get the checkUserBean
+            checkUserBean = UtilAction.findUserByCode(sql, checkUserCode);
+            if (checkUserBean == null) {
+                logger.error("Error user not found into IDEAS " + checkUserCode);
+                continue;
+            }
+	
+			// Add checkUserBean entitlements to dataset
+			BeanList entitlements = UserAction.findJobRoles(sql, checkUserBean);  
+
+			BeanList listBean = new BeanList();
+			for (int i = 0; i < entitlements.size(); i++) {
+					AbstractBean[] element = new AbstractBean[2];
+					element[0] = checkUserBean;
+					element[1] = (EntitlementBean) entitlements.get(i);
+					listBean.add(element);
+			}
+
+			if (listBean.size() > 0) {
+			templateDAO.addEntity(listBean, AttestationRes.TEMPLATE_ENTITY_USERENT, templateBean, AttestationTypes.PERSON_ENTITLEMENT.getValue());
+			}
+  
+    }
+    rs.close();
+
+logger.debug("Add Users to Scanner Campaign RULE END");
+
+import com.crossideas.ap.common.ruleengine.action.RequestGenerationRule
+import com.crossideas.certification.backend.dao.TemplateDAO
+import com.crossideas.certification.common.AttestationRes
+import com.crossideas.certification.common.bean.AttestationBean
+import com.crossideas.certification.common.bean.TemplateBean
+import com.crossideas.certification.common.enumeration.AttestationTypes
+import com.engiweb.logger.impl.Log4JImpl
+import com.engiweb.pm.dao.db.DAO
+import com.engiweb.pm.entity.BeanList
+import com.engiweb.pm.entity.Paging
+import com.engiweb.pm.web.bean.AbstractBean
+import com.engiweb.profilemanager.backend.dao.db.SQLH
+import com.engiweb.profilemanager.common.bean.AccountBean
+import com.engiweb.profilemanager.common.bean.ApplicationBean
+import com.engiweb.profilemanager.common.bean.Block
+import com.engiweb.profilemanager.common.bean.entitlement.EntitlementBean
+import com.engiweb.profilemanager.common.bean.event.EventBean
+import com.engiweb.profilemanager.common.bean.event.EventInBean
+import com.engiweb.profilemanager.common.bean.ExternalInfo
+import com.engiweb.profilemanager.common.bean.OrgUnitBean
+import com.engiweb.profilemanager.common.bean.OrgUnitErcBean
+import com.engiweb.profilemanager.common.bean.PwdCfgBean
+import com.engiweb.profilemanager.common.bean.UserBean
+import com.engiweb.profilemanager.common.bean.UserErcBean
+import com.engiweb.profilemanager.common.enumerations.LockType
+import com.engiweb.profilemanager.common.ruleengine.action.JobRoleAction
+import com.engiweb.profilemanager.common.ruleengine.action.OrgUnitAction
+import com.engiweb.profilemanager.common.ruleengine.action.reorganize._AccountAction
+import com.engiweb.profilemanager.common.ruleengine.action.reorganize._OrgUnitAction
+import com.engiweb.profilemanager.common.ruleengine.action.reorganize._UserAction
+import com.engiweb.profilemanager.common.ruleengine.action.UserAction
+import com.engiweb.profilemanager.common.ruleengine.action.UtilAction
+import com.engiweb.toolkit.common.DBMSException
+import java.sql.ResultSet
+import java.sql.Statement
+import java.util.HashMap
+import java.util.Iterator
+
+global com.engiweb.logger.impl.Log4JImpl logger
+global com.engiweb.pm.dao.db.DAO sql
+global com.engiweb.profilemanager.backend.dao.db.SQLH sql
+

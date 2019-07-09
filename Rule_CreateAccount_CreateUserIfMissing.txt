@@ -1,0 +1,84 @@
+when
+    event : EventTargetBean(  )  
+    account : AccountBean(  )  
+    attributes : AccountAttrValueList(  )
+then
+// Exit if account_code is null
+if (event.getCode() == null) {
+    logger.info("Account code is empty. Account can not be created - no code!");
+    return;
+  }
+
+// Exit if already matched to existing User already
+if (account.getPerson_id() != null) {
+    logger.info("Account Owner User exists, and is already matched!");
+    return;
+  }
+
+// Construct user attributes
+UserBean userBean = new UserBean(  );
+OrgUnitBean orgUnitBean = new OrgUnitBean(  );
+ExternalInfo externalInfo = new ExternalInfo(  );
+
+// User Attributes from Account object
+  String userOU = "root";
+  String userCode = event.getCode().toString();
+  String userMAIL = event.getEmail();
+  String userSurname = event.getSurname();
+  String userName = event.getName();
+  String userDisplayName = event.getDisplayName();
+  String userIdentityUID = event.getIdentityUID().toString();
+  String userApplicationName = event.getPwdcfg_name();
+  
+logger.info("Account Create: Account Owner User create process started: " + userOU + "," + userCode + "," + userMAIL + "," + userDisplayName );
+logger.debug("Account Create: Account Owner User create process started." + userOU + "," + userCode + "," + userMAIL + "," + userDisplayName );
+logger.info("Account Create: Account Owner User create process started: " + userName + "," + userSurname + "," + userIdentityUID + "," + userApplicationName );
+logger.debug("Account Create: Account Owner User create process started." + userName + "," + userSurname + "," + userIdentityUID + "," + userApplicationName );
+
+orgUnitBean.setCode(userOU);
+//externalInfo.setAttribute("Attr3","User added by account add rule");
+userBean.setCode(userCode);
+userBean.setEmail(userMAIL);
+userBean.setName(userName);
+userBean.setSurname(userSurname);
+
+// create user in IGI
+try {
+    UserAction.add(sql, userBean, orgUnitBean, externalInfo);
+  } catch (DBMSException e) {
+    if (e.getErrorCode() == DBMSException.OBJECT_NOT_UNIQUE) {
+      throw new Exception("Account owner User already exists with code=" + userBean.getCode());
+	} else {
+      throw e;
+	}
+  }
+
+  logger.debug("Account's Owner User  created : " + userBean.getCode());
+
+=======
+
+import com.engiweb.logger.impl.Log4JImpl
+import com.engiweb.profilemanager.backend.dao.db.SQLH
+import com.engiweb.pm.entity.BeanList
+import com.engiweb.profilemanager.common.bean.AccountBean
+import com.engiweb.profilemanager.common.bean.Block
+import com.engiweb.profilemanager.common.bean.OrgUnitBean
+import com.engiweb.profilemanager.common.bean.UserBean
+import com.engiweb.profilemanager.common.bean.ExternalInfo
+import com.engiweb.profilemanager.common.bean.entitlement.EntitlementBean
+import com.engiweb.profilemanager.common.bean.event.EntStateBean
+import com.engiweb.profilemanager.common.bean.event.EventTargetBean
+import com.engiweb.profilemanager.common.bean.rule.SyncStateBean
+import com.engiweb.profilemanager.common.ruleengine.action.EntitlementAction
+import com.engiweb.profilemanager.common.ruleengine.action.OrgUnitAction
+import com.engiweb.profilemanager.common.ruleengine.action.UserAction
+import com.engiweb.toolkit.common.DBMSException
+import com.engiweb.profilemanager.common.bean.AccountAttrValueList
+import com.engiweb.profilemanager.common.interfaces.IAccountDirect
+import com.engiweb.toolkit.interfaces.JndiNames
+import com.engiweb.profilemanager.common.bean.targetattr.PwdManagementAttrValBean
+import common.direct.DirectFactory
+
+global com.engiweb.profilemanager.backend.dao.db.SQLH sql
+global com.engiweb.logger.impl.Log4JImpl logger
+

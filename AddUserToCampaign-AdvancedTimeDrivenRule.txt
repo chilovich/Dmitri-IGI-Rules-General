@@ -1,0 +1,62 @@
+when
+		eval (     true      )
+then
+
+  // Dataset we populate from this rule
+  String tName = "Scanner Events";
+
+  TemplateBean templateBean = new TemplateBean();
+  templateBean.setName(tName);
+
+  TemplateDAO templateDAO = new TemplateDAO(logger);
+  templateDAO.setDAO(sql);
+
+  BeanList blTemplateBean = templateDAO.find(templateBean, new Paging(4));
+
+  if (blTemplateBean.size()==0) {
+    throw new Exception("Template does not exists!");
+  }
+  templateBean = (TemplateBean) blTemplateBean.get(0);
+  
+    // For test we add all TEST Users to campaign dataset
+	String SQL_QUERY_GET_USERS = "select distinct CODE from " + sql.getCntSQL().dbUser + ".PERSON where NAME like '%%Test%%'";
+
+	ResultSet rs = sql.getCntSQL().getConnection().createStatement().executeQuery(SQL_QUERY_GET_USERS);
+    	logger.debug("EXECUTE QUERY " + SQL_QUERY_GET_USERS);
+
+    // For each user we check, add him and his entitlements to campaign
+    String checkUserCode = null;
+    UserBean checkUserBean = null;
+
+	while (rs.next()) {
+
+            logger.debug("LOOP ...");
+			
+            checkUserCode = rs.getString(1);
+			
+		 // Get the checkUserBean
+            checkUserBean = UtilAction.findUserByCode(sql, checkUserCode);
+            if (checkUserBean == null) {
+                logger.error("Error user not found into IDEAS " + checkUserCode);
+                continue;
+            }
+	
+			// Add checkUserBean entitlements to dataset
+			BeanList entitlements = UserAction.findJobRoles(sql, checkUserBean);  
+
+			BeanList listBean = new BeanList();
+			for (int i = 0; i < entitlements.size(); i++) {
+					AbstractBean[] element = new AbstractBean[2];
+					element[0] = checkUserBean;
+					element[1] = (EntitlementBean) entitlements.get(i);
+					listBean.add(element);
+			}
+
+			if (listBean.size() > 0) {
+			templateDAO.addEntity(listBean, AttestationRes.TEMPLATE_ENTITY_USERENT, templateBean, AttestationTypes.PERSON_ENTITLEMENT.getValue());
+			}
+  
+    }
+    rs.close();
+
+logger.debug("Add Users to Scanner Campaign RULE END");

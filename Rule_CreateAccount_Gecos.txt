@@ -1,0 +1,76 @@
+when
+    event : EventTargetBean(  )  
+    account : AccountBean(  )
+then
+String eventUserCode="";
+  if (account.getId() != null) {
+    // Account already exists
+    logger.info("Account already exists!");
+    event.setTrace("Account already exists!");
+    return;
+  }
+
+  if (account.getPerson_id() == null) {
+    // Create the UnMatched account
+    eventUserCode = event.getCode();
+    	if (eventUserCode != null) {
+      	account.setCode(eventUserCode);
+  	  }
+    UserAction.addAccount(sql, account);
+    logger.info("Account created!");
+    event.setTrace("Unable to match Identity!");
+  }
+
+   String filter;
+    DirContext dirContext = null;
+
+
+    Hashtable<String, String> env = new Hashtable<String, String>();
+    env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
+    env.put(Context.PROVIDER_URL, "ldap://192.168.42.140:389");
+    env.put(Context.SECURITY_AUTHENTICATION, "simple");
+    env.put(Context.SECURITY_PRINCIPAL, "cn=root");
+    env.put(Context.SECURITY_CREDENTIALS, "igi");
+   
+         try
+         {
+	   dirContext = new InitialLdapContext(env, null);
+
+         }catch (NamingException e) {
+        
+         }
+
+   filter = "(eruid="+eventUserCode+")";
+   SearchControls controls = new SearchControls();
+   controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+   NamingEnumeration<?> result = dirContext.search("dc=com", filter, controls);
+   while (result.hasMoreElements()) {
+             logger.info("Account Found in LDAP");
+	     SearchResult searchResult = (SearchResult)  result.next();
+             Attributes attrs = searchResult.getAttributes();
+             Attribute gecos = attrs.get("erposixgecos");
+             if(gecos != null)
+             {
+                  String masteruid= (String) gecos.get();
+            
+  // Look for the User into IDEAS
+   UserBean userFilter = new UserBean();
+   userFilter.setCode(masteruid);
+   BeanList ul = UserAction.find(sql, userFilter);
+   logger.info("value of ul--"+ul);
+   if (ul.size() == 0) {
+     // userNotFound
+     logger.info("user not found into IDEAS");
+     throw new Exception("User not found into IDEAS, description=" + masteruid);
+
+   } else {
+     // found
+     userFilter = (UserBean) ul.get(0);
+     account.setPerson_id(userFilter.getId());
+     UserAction.updateAccount(sql,account);
+     logger.info("Account ownership Updated Successfully");
+    }
+}
+else
+{  logger.info("gecos attribute not found!"); }
+}

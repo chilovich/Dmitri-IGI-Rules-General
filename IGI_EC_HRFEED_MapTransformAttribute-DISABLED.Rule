@@ -1,0 +1,15 @@
+when
+		event : Event(  )
+then
+
+        //userAccountControl conversion
+        String value = (String) event.getBean().getCurrentAttribute("USERACCOUNTCONTROL");
+        if (value == null) {
+            log.debug("userAccountControl is NULL: return");
+            return;
+        }
+
+        int userAccountControl = Integer.parseInt(value);
+        boolean disabled = ((userAccountControl & 2) > 0);
+
+        event.getBean().setCurrentAttributeValue("varDisabled", new Boolean(disabled));

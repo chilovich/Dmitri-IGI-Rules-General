@@ -1,0 +1,64 @@
+when
+    eval( true )
+then
+logger.info("Sync Expire Date USERS_ERC - IDEAS Accounts RULE START");
+
+	// get current date, IGI supports only date and no time in timestamp
+    SimpleDateFormat cd = new SimpleDateFormat("yyyy-MM-dd");
+    Date currentDate = new Date();
+	String currentDateString = cd.format(currentDate);
+    logger.info("Current Date is: " + currentDateString);
+
+  // find erc users with exp date
+  String SQL_QUERY_GET_EXPIRED = "select distinct PM_CODE, ACCOUNT_EXPIRY_DATE from " + sql.getCntSQL().dbUser + ".USER_ERC where ACCOUNT_EXPIRY_DATE is not null";
+
+  ResultSet rs = sql.getCntSQL().getConnection().createStatement().executeQuery(SQL_QUERY_GET_EXPIRED);
+  logger.info("EXECUTE QUERY " + SQL_QUERY_GET_EXPIRED);
+
+  String userPMCode = null;
+  Date expireDate = null;
+	
+	while (rs.next()) {
+
+            userPMCode = rs.getString(1);
+			expireDate = new SimpleDateFormat("yyyy-MM-dd").parse(rs.getString(2));
+			logger.info("Set IDEAS Account EXPIRE for USER_ERC User " + userPMCode + " to " + rs.getString(2));
+			
+			// Get the userBean by userCode from USER_ERC table
+			String SQL_QUERY_GET_USERBEAN = "select distinct CODE from " + sql.getCntSQL().dbUser + ".PERSON where CODE = '" + userPMCode + "'";
+			
+			ResultSet rs2 = sql.getCntSQL().getConnection().createStatement().executeQuery(SQL_QUERY_GET_USERBEAN);
+			logger.info("EXECUTE QUERY " + SQL_QUERY_GET_USERBEAN);
+										
+			// Now switch to users in PERSON IGI table
+			String userCode = null;
+			UserBean userBean = null;
+			
+			while (rs2.next()) {
+			
+					userCode = rs2.getString(1);
+					userBean = UtilAction.findUserByCode(sql, userCode);
+			
+					if (userBean == null) {
+						logger.error("Error - PERSON User not found by Code: " + userCode);
+						continue;
+					}
+	
+					AccountBean userAccount = new AccountBean();
+					userAccount.setPwdcfg_id(1L); // IDEAS cfg, ID=1
+
+					BeanList accounts = UserAction.findAccount(sql, userBean, userAccount);
+					userAccount = (AccountBean) accounts.get(0);
+          
+					// Set EXPIRE Date for IDEAS Account
+					userAccount.setExpire(expireDate);
+					UserAction.updateAccount(sql, userAccount );
+					logger.info("User IDEAS Account: " + userBean.getCode() + " expire date is synced to USER_ERC expire date.");
+		
+		    }
+			rs2.close();
+ 
+    }
+    rs.close();
+
+logger.info("Sync Expire Date USERS_ERC - IDEAS Accounts RULE END");

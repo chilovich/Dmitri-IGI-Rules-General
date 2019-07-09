@@ -1,0 +1,66 @@
+when
+    userBean : UserBean(  )
+    orgUnitBean : OrgUnitBean(  )
+then
+if (orgUnitBean.getCode() == null || orgUnitBean.getCode().equals("")) {
+    // set default OU = root
+    orgUnitBean.setCode("root");
+  }
+
+  // Check if the new OU is actually different
+  if (userBean.getOrganizationalunit_code() == null ||
+(!userBean.getOrganizationalunit_code().equalsIgnoreCase(orgUnitBean.getCode()))) {
+
+    // Make sure all the user entitlements will be available on the new OU
+    BeanList entitlements = UserAction.findJobRoles(sql, userBean);
+
+    OrgUnitAction.addRoles(sql, orgUnitBean, entitlements, false);
+
+    // Move the user assigning the default entitlements of the new OU
+    UtilAction.moveUser(sql, userBean, orgUnitBean);
+
+    logger.debug("User " + userBean.getCode() + " moved to " + orgUnitBean.getCode());
+  }
+
+
+====
+Alberto Novello: 
+11:14:06 AM: package com.engiweb.profilemanager.common.ruleengine.action.reorganize;  
+
+11:14:34 AM: _UserAction  
+
+11:14:47 AM: 	/**
+	 * The method moves the user given from its original organization unit to the new organization unit given.
+	 * All the entitlements that are compatible with the new organization unit will remain assigned to the user.
+	 * 
+	 * @param sql
+	 *            mandatory connection parameter
+	 * @param newOrgUnit
+	 *            new organization unit of the user, mandatory
+	 * @param userBean
+	 *            user to move, mandatory
+	 * @throws Exception
+	 */
+	public static void moveUser(DAO sql, OrgUnitBean newOrgUnit, UserBean userBean) throws Exception {  
+
+11:15:12 AM: 	/**
+	 * The method moves the user given from its original organization unit to the new organization unit given.
+	 * It is present a parameter that defines the type of movement.
+	 * 
+	 * @param sql
+	 *            mandatory connection parameter
+	 * @param type
+	 *            integer parameter used to define the type of movement:
+	 *            1-assigns only the entitlements compatible with the new organization unit
+	 *            2-assigns only the entitlements of the default employments of the new organization unit
+	 * @param orgUnitTO
+	 *            new organization unit of the user, mandatory
+	 * @param userBean
+	 *            user to move, mandatory
+	 * @throws Exception
+	 */
+	public static void moveOU(DAO sql, int type, OrgUnitBean orgUnitTO, UserBean userBean) throws Exception {  
+
+11:15:41 AM: moveOU  
+
+11:16:41 AM: package com.engiweb.profilemanager.common.ruleengine.action.reorganize;

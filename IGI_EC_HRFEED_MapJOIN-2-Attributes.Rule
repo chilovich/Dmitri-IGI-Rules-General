@@ -1,0 +1,13 @@
+when
+		event : Event(  )
+then
+
+    String rightName = (String) event.getBean().getCurrentAttribute("RIGHT_NAME");
+    if (rightName !=null && !rightName .equals("")){
+
+        String rightValue = (String) event.getBean().getCurrentAttribute("RIGHT_VALUE");
+        if (rightValue !=null && !rightValue .equals("")){
+
+            event.getBean().setCurrentAttributeValue("var_right", rightName + "=" + rightValue);
+        }
+    }

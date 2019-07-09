@@ -1,0 +1,81 @@
+when
+		event : EventInBean(  )
+		userBean : UserBean(  )
+		externalInfo : ExternalInfo(  )
+then
+  // [ V1.0, D.Chilovich, 03/10/2018 ]
+  // Check User Type. If User type changed from Contractor to Employee, create new Employee User with old ID,
+  // leave old Contractor User in IGI in suspended state, transfer all old user entitlements to new Employee User,
+  // change old Contractor User ID to *_Contr ID.
+  // MANAGER - ATTR1
+  // User Type ( Employee / Contractor ) - USER_TYPE
+  
+  // Check if user type changed
+  String changedAttributes = (String) event.getPersontype_name();
+	if (changedAttributes == null)
+    changedAttributes = "";
+    changedAttributes = changedAttributes.toUpperCase();
+    
+	// Exit if no user type change is not detected
+    if (!changedAttributes.contains("USER_TYPE;")) {
+      return;
+    }
+	
+	// Send notification to manager
+    final String SMTP = "igi523.ibm.com";
+    final int SMTP_PORT = 25;
+    final String MAIL_FROM = "igi@ibm.com";
+    final String MAIL_SUBJECT = "Your managed user change to Employee status.";
+    String mailMsg = "Dear User Manager\n\nYour managed user changed status to Employee:";
+
+    String managerUserID = (String) externalInfo.getAttribute("MANAGER");
+    UserBean managerBean = UtilAction.findUserByCode(sql, managerUserID);
+
+    String MAIL_TO = managerBean.getEmail();
+    mailMsg += " " + userBean.getName() + " " + userBean.getSurname() + " userID=" + userBean.getCode();
+
+    // Send email using specified SMTP
+    try {
+      UtilAction.sendMail(null, MAIL_FROM, MAIL_TO, null, MAIL_SUBJECT, mailMsg, SMTP, SMTP_PORT);
+      logger.debug("Mail sent about employee type change.");
+    } catch (Exception e) {
+      logger.error("Unable to sent email" + e);
+    }
+
+    //Deprecated...this rule will generate a new Campaign for every user transfer to Employee
+    //BeanList users = new BeanList();
+    //users.add(userBean);
+    //UtilAction.generateCampaignForUsers(sql, users, 30);
+	
+	=================
+	
+import com.engiweb.logger.impl.Log4JImpl;
+import com.engiweb.pm.entity.BeanList;
+import com.engiweb.profilemanager.backend.dao.db.SQLH;
+import com.engiweb.profilemanager.common.bean.AccountBean;
+import com.engiweb.profilemanager.common.bean.ExternalInfo;
+import com.engiweb.profilemanager.common.bean.OrgUnitBean;
+import com.engiweb.profilemanager.common.bean.OrgUnitErcBean;
+import com.engiweb.profilemanager.common.bean.PwdCfgBean;
+import com.engiweb.profilemanager.common.bean.UserBean;
+import com.engiweb.profilemanager.common.bean.UserErcBean;
+import com.engiweb.profilemanager.common.bean.event.EventBean;
+import com.engiweb.profilemanager.common.bean.event.EventInBean;
+import com.engiweb.profilemanager.common.ruleengine.action.OrgUnitAction;
+import com.engiweb.profilemanager.common.ruleengine.action.UserAction;
+import com.engiweb.profilemanager.common.ruleengine.action.UtilAction;
+import com.engiweb.toolkit.common.DBMSException;
+import com.engiweb.profilemanager.common.bean.Block;
+import com.engiweb.profilemanager.common.ruleengine.action.UtilAction;
+import com.engiweb.profilemanager.common.ruleengine.action.OrgUnitAction;
+import com.engiweb.profilemanager.common.ruleengine.action.UserAction;
+import com.engiweb.profilemanager.common.bean.UserBean;
+import com.engiweb.profilemanager.common.bean.UserErcBean;
+import com.engiweb.profilemanager.common.bean.entitlement.EntitlementBean;
+import com.engiweb.profilemanager.common.bean.event.EventInBean;
+
+global com.engiweb.profilemanager.backend.dao.db.SQLH sql;
+global com.engiweb.logger.impl.Log4JImpl logger;
+
+
+

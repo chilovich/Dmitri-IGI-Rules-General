@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RuleEngine xmlns="http://www.crossideas.com">
+    <ExportInfo>
+        <ExportDate>11/01/2017 21:20:51</ExportDate>
+        <Realm>IDEAS</Realm>
+        <Hash>698032092</Hash>
+    </ExportInfo>
+    <RuleClass>
+        <Name>HIERARCHY</Name>
+        <Queues>
+            <Queue>
+                <Name>&lt;empty&gt;</Name>
+                <RuleFlows>
+                    <RuleFlow>
+                        <Name>HIERARCHY_EXAMPLES</Name>
+                        <PackageImport>import com.engiweb.profilemanager.common.bean.UserExtInfoBean
+import com.engiweb.profilemanager.common.bean.UserBean
+import com.crossideas.certification.common.bean.data.ResultBean
+import java.util.ArrayList
+
+global com.engiweb.pm.dao.db.DAO sql
+global com.engiweb.logger.impl.Log4JImpl logger
+
+</PackageImport>
+                        <Configurations/>
+                        <RulesPackage>
+                            <Rule>
+                                <Name>OU&gt;Dept&gt;Title</Name>
+                                <Body>when
+    userBean : UserBean(  )  
+    userInfoList : ArrayList(  )  
+    resultBean : ResultBean(  )
+then
+/*NATION for first, Attr3-&gt;DepartmentCode,Attr4-&gt;Title*/
+
+String geo=null;
+String department=null;
+String title=null;
+
+for (int i=0;i&lt;userInfoList.size();i++){
+  UserExtInfoBean extInfoBean = (UserExtInfoBean)userInfoList.get(i);
+  
+  String name = extInfoBean.getName();
+  String value = extInfoBean.getValue();
+  
+  if(name.equalsIgnoreCase("OU")&amp;&amp;value!=null){
+    geo = value;
+  }
+  
+  if(name.equalsIgnoreCase("department")&amp;&amp;value!=null){
+    department= value;
+  }
+  
+  if(name.equalsIgnoreCase("Title")&amp;&amp;value!=null){
+    title= value;
+  }
+}
+
+if (geo!=null &amp;&amp; department!=null &amp;&amp; title!=null ) {
+   resultBean.setResultString(geo+";"+department+";"+title); 
+} else {
+   resultBean.setResultString("root"); 
+}</Body>
+                            </Rule>
+                        </RulesPackage>
+                        <Structure>
+                            <FlowType>
+                                <Name>RUN</Name>
+                                <FlowEntities>
+                                    <FlowEntity>
+                                        <FlowEntityType>RULE</FlowEntityType>
+                                        <Name>OU&gt;Dept&gt;Title</Name>
+                                        <Position>1</Position>
+                                    </FlowEntity>
+                                </FlowEntities>
+                            </FlowType>
+                        </Structure>
+                    </RuleFlow>
+                    <RuleFlow>
+                        <Name>HCare Hier</Name>
+                        <PackageImport>import com.engiweb.profilemanager.common.bean.UserExtInfoBean
+import com.engiweb.profilemanager.common.bean.UserBean
+import com.crossideas.certification.common.bean.data.ResultBean
+import java.util.ArrayList
+
+global com.engiweb.pm.dao.db.DAO sql
+global com.engiweb.logger.impl.Log4JImpl logger
+
+</PackageImport>
+                        <Configurations/>
+                        <RulesPackage>
+                            <Rule>
+                                <Name>HCare HR</Name>
+                                <Body>when
+    userBean : UserBean(  )  
+    userInfoList : ArrayList(  )  
+    resultBean : ResultBean(  )
+then
+/*Attr4-&gt;Title*/
+
+String title=null;
+
+for (int i=0;i&lt;userInfoList.size();i++){
+  UserExtInfoBean extInfoBean = (UserExtInfoBean)userInfoList.get(i);
+  
+  String name = extInfoBean.getName();
+  String value = extInfoBean.getValue();
+  
+
+  if(name.equalsIgnoreCase("Title")&amp;&amp;value!=null){
+    title= value;
+  }
+}
+
+if (title!=null &amp;&amp; title.equalsIgnoreCase("HCare Recruitment")) {
+   resultBean.setResultString(title); 
+}</Body>
+                            </Rule>
+                        </RulesPackage>
+                        <Structure>
+                            <FlowType>
+                                <Name>RUN</Name>
+                                <FlowEntities>
+                                    <FlowEntity>
+                                        <FlowEntityType>GROUP</FlowEntityType>
+                                        <Name>Rule 1</Name>
+                                        <Position>0</Position>
+                                        <FlowEntities>
+                                            <FlowEntity>
+                                                <FlowEntityType>RULE</FlowEntityType>
+                                                <Name>HCare HR</Name>
+                                                <Position>0</Position>
+                                            </FlowEntity>
+                                        </FlowEntities>
+                                    </FlowEntity>
+                                </FlowEntities>
+                            </FlowType>
+                        </Structure>
+                    </RuleFlow>
+                </RuleFlows>
+            </Queue>
+        </Queues>
+    </RuleClass>
+</RuleEngine>

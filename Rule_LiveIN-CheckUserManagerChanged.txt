@@ -1,0 +1,46 @@
+when
+		event : EventInBean(  )
+		userBean : UserBean(  )
+		externalInfo : ExternalInfo(  )
+then
+  // [ V1.1 - 2014-05-26 ]
+
+  // Check MANAGER leader is changed
+  String changedAttributes = (String) event.getExtAttr9();
+  if (changedAttributes == null)
+    changedAttributes = "";
+    changedAttributes = changedAttributes.toUpperCase();
+    // MANAGER is mapped with column ATTR1
+    if (!changedAttributes.contains("ATTR1;")) {
+      return;
+    }
+
+    final String SMTP = "igi523.ibm.com";
+    final int SMTP_PORT = 25;
+
+    final String MAIL_FROM = "igi@ibm.com";
+    final String MAIL_SUBJECT = "New managed user";
+
+    String mailMsg = "Dear User Manager\n\nNew managed user:";
+
+    String managerUserID = (String) externalInfo.getAttribute("MANAGER");
+    UserBean managerBean = UtilAction.findUserByCode(sql, managerUserID);
+
+    String MAIL_TO = managerBean.getEmail();
+
+    mailMsg += " " + userBean.getName() + " " + userBean.getSurname() + " userID=" + userBean.getCode();
+
+    // Send email using specified SMTP
+    try {
+      UtilAction.sendMail(null, MAIL_FROM, MAIL_TO, null, MAIL_SUBJECT, mailMsg, SMTP, SMTP_PORT);
+
+      logger.debug("Mail sent");
+
+    } catch (Exception e) {
+      logger.error("Unable to sent email" + e);
+    }
+
+    //Deprecated...this rule will generate a new Campaign for every user
+    //BeanList users = new BeanList();
+    //users.add(userBean);
+    //UtilAction.generateCampaignForUsers(sql, users, 30);

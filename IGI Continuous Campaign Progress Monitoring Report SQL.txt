@@ -1,0 +1,42 @@
+SELECT
+reviewer.name AS REVIEWER_NAME,
+reviewer.surname AS REVIEWER_SURNAME,
+reviewer.code AS REVIEWER_CODE,
+reviewer.email AS REVIEWER_EMAIL,
+p.code AS PERSON_CODE,
+e.name AS ENTITLEMENT_NAME
+FROM
+attestation a,
+EMPLOYMENT_REVIEW er,
+EMPLOYMENT_REVIEWER err,
+person reviewer,
+person p,
+ENTITLEMENT e
+WHERE
+a.name = '<attestation_name>'
+AND er.ATTESTATION = a.id
+AND er.id = err.EMPLOYMENT_REVIEW
+AND err.CERT_FIRST_OWNER = reviewer.id
+AND er.PERSON = p.ID
+AND(
+er.CREATION_DATE BETWEEN CURRENT_DATE - n+1 AND CURRENT_DATE - n // n to be replaced with the number of days do be considered
+)
+AND er.ENTITLEMENT=e.id
+AND er.REVIEW_STATE=0 //REVIEW_STATE=0--> Not yet worked
+
+2) Non so a che livello serve l'info che hai richesto
+
+un esempio poterebbe essere
+
+
+IPersonReview remote = (IPersonReview) InterfaceFactory.getInterface(JndiNames.personReviewEJB);
+remote.revoke(employments, note, token, realm);
+
+
+where the employmentReviewBean can be found using:
+
+IPersonReview remote = (IPersonReview) InterfaceFactory.getInterface(JndiNames.personReviewEJB);
+BeanList<EmploymentReviewBean> result =
+remote.findReview(employmentReviewBean, reviewOption, attestationBean, paging,token,realm);
+attestationBean --> AttestationBean --> campaign to be considered
+employmentReviewBean --> EmploymentReviewBean--> contains info about the entitlement to be reviewed and person to whom it belongs
